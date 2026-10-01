@@ -124,3 +124,5 @@ scripts/       harness linking and the throwaway profile installer
 
 The module boundaries, the seams, and the generated whiteboard are documented in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+[![SonarQube Cloud](https://sonarcloud.io/images/project_badges/sonarcloud-highlight.svg)](https://sonarcloud.io/summary/new_code?id=JWE24-code_dsh-jev-loop)
