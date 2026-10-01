@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  # The three smoke suites are dependency-free: they import only the pure
+  # modules, whose `@deepseek-ai/*` references are type-only and erased by
+  # `--experimental-strip-types`. So this job needs no Harness install.
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+
+  # Compiling the Harness-typed files does need `@deepseek-ai/*`, which
+  # `link-harness` makes resolvable from the checkout.
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # Pinned to the line this plugin targets (0.1.5-rc.3): against
+      # 0.2.0-rc.2 the message-segment types differ and the typecheck fails.
+      # Unpin only after updating the plugin for the 0.2.x API.
+      - run: npm install -g --ignore-scripts @deepseek-ai/dsh@0.1.5-rc.3
+      - run: npm ci --ignore-scripts
+      - run: npm run link-harness
+      - run: npm run build
+      - run: npm run typecheck
