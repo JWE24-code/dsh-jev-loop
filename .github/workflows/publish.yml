@@ -41,8 +41,11 @@ jobs:
       - run: npm install -g --ignore-scripts npm@12.2.0
 
       # `link-harness` symlinks the Harness packages into the checkout so the
-      # build and typecheck can resolve `@deepseek-ai/*`.
-      - run: npm install -g --ignore-scripts @deepseek-ai/dsh
+      # build and typecheck can resolve `@deepseek-ai/*`. Pinned to the line
+      # this plugin targets (0.1.5-rc.3): against 0.2.0-rc.2 the message-segment
+      # types differ and the typecheck fails. Unpin only after updating the
+      # plugin for the 0.2.x API.
+      - run: npm install -g --ignore-scripts @deepseek-ai/dsh@0.1.5-rc.3
 
       - run: npm ci --ignore-scripts
       - run: npm run link-harness
