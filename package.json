@@ -1,6 +1,6 @@
 {
   "name": "dsh-jev-loop",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Jev (TypeSafe System One) judgments at the DeepSeek Harness agent-loop gates: pre-step, pre-execute, post-execute, and turn-stopping. No UI dependencies; mount it in any Harness composition.",
   "type": "module",
   "license": "MIT",
