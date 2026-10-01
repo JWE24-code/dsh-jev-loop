@@ -238,14 +238,16 @@ export class JevClient implements Judger {
     }
   }
 
-  /** One request, with the retry loop around the service's overload statuses. */
-  private async request(body: string, caller?: AbortSignal): Promise<JevResponse | undefined> {
-    for (let attempt = 0; attempt <= this.options.maxRetries; attempt += 1) {
-      const result = await this.attempt(body, caller)
-      if (result.kind === 'answer') return result.response
-      if (result.kind === 'stop' || attempt === this.options.maxRetries) return undefined
-      await sleep(backoff(attempt))
-    }
-    return undefined
+  /** One request, retrying around the service's overload statuses. */
+  private async request(
+    body: string,
+    caller?: AbortSignal,
+    attempt = 0,
+  ): Promise<JevResponse | undefined> {
+    const result = await this.attempt(body, caller)
+    if (result.kind === 'answer') return result.response
+    if (result.kind === 'stop' || attempt >= this.options.maxRetries) return undefined
+    await sleep(backoff(attempt))
+    return this.request(body, caller, attempt + 1)
   }
 }

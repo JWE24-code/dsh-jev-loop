@@ -23,18 +23,21 @@ project.
 
 - **S8707 (path traversal).** `profileName` (argv) becomes a directory under
   `~/.dsh/profiles`, and the old guard only rejected `/` and `\`. A `..` name
-  therefore escaped one level. Replaced with a flat, dotless allowlist:
-  `/^[A-Za-z0-9][A-Za-z0-9_-]*$/`.
+  therefore escaped one level. It now gets both a flat, dotless allowlist
+  (`/^[A-Za-z0-9][A-Za-z0-9_-]*$/`) and — the sanitizer Sonar's taint analysis
+  accepts — a `resolve(profilesRoot, name)` followed by a
+  `startsWith(profilesRoot + sep)` containment check.
 - **S4036 (PATH).** The two `execFileSync('sh', …)` calls now use `/bin/sh`, so
   the interpreter is not located through the caller's PATH.
 - **S6606 + S3403.** `text === undefined ? String(value) : text` becomes
   `text ?? String(value)`. Identical for `JSON.stringify` (which returns a
   string or undefined), and the compiled `lib/loop.js` no longer holds the
   `===` that JavaScript analysis flagged as always-false.
-- **S3776.** The retry loop moved into `attempt()` returning an
-  `answer`/`retry`/`stop` outcome, leaving `request()` a short loop over it.
-  Behaviour is unchanged: overloads and transient errors retry until
-  `maxRetries`, cancellation and malformed answers stop.
+- **S3776.** The per-attempt fetch moved into `attempt()` returning an
+  `answer`/`retry`/`stop` outcome; `request()` recurses once per retry instead
+  of awaiting inside a loop (which would raise `S9382`). Behaviour is
+  unchanged: overloads and transient errors retry until `maxRetries`,
+  cancellation and malformed answers stop.
 - **S7503.** The in-memory judger/credential-store doubles drop `async` and
   return `Promise.resolve(...)`.
 - **S3358.** The `modeFor` test helper uses `if` statements instead of nested

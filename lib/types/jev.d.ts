@@ -121,6 +121,6 @@ export declare class JevClient implements Judger {
     private remember;
     /** One attempt's outcome: an answer, another try, or a final stop. */
     private attempt;
-    /** One request, with the retry loop around the service's overload statuses. */
+    /** One request, retrying around the service's overload statuses. */
     private request;
 }
