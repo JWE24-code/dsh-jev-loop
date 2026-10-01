@@ -202,48 +202,49 @@ export class JevClient implements Judger {
     }
   }
 
+  /** One attempt's outcome: an answer, another try, or a final stop. */
+  private async attempt(
+    body: string,
+    caller: AbortSignal | undefined,
+  ): Promise<{ kind: 'answer'; response: JevResponse } | { kind: 'retry' } | { kind: 'stop' }> {
+    const controller = new AbortController()
+    const onAbort = (): void => controller.abort()
+    caller?.addEventListener('abort', onAbort, { once: true })
+    const timer = setTimeout(() => controller.abort(), this.options.timeoutMs)
+    try {
+      const response = await fetch(this.options.baseUrl, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${this.options.apiKey}`,
+          'content-type': 'application/json',
+        },
+        body,
+        signal: controller.signal,
+      })
+      if (response.status === 429 || response.status === 529) return { kind: 'retry' }
+      if (!response.ok) return { kind: 'stop' }
+      const parsed = (await response.json()) as JevResponse
+      if (parsed === null || typeof parsed !== 'object' || parsed.answers === undefined) {
+        return { kind: 'stop' }
+      }
+      return { kind: 'answer', response: parsed }
+    } catch {
+      // Caller cancellation is final; a timeout or a socket error retries.
+      if (caller?.aborted === true) return { kind: 'stop' }
+      return { kind: 'retry' }
+    } finally {
+      clearTimeout(timer)
+      caller?.removeEventListener('abort', onAbort)
+    }
+  }
+
   /** One request, with the retry loop around the service's overload statuses. */
   private async request(body: string, caller?: AbortSignal): Promise<JevResponse | undefined> {
     for (let attempt = 0; attempt <= this.options.maxRetries; attempt += 1) {
-      const controller = new AbortController()
-      const onAbort = (): void => controller.abort()
-      caller?.addEventListener('abort', onAbort, { once: true })
-      const timer = setTimeout(() => controller.abort(), this.options.timeoutMs)
-      try {
-        const response = await fetch(this.options.baseUrl, {
-          method: 'POST',
-          headers: {
-            authorization: `Bearer ${this.options.apiKey}`,
-            'content-type': 'application/json',
-          },
-          body,
-          signal: controller.signal,
-        })
-        if (response.status === 429 || response.status === 529) {
-          if (attempt < this.options.maxRetries) {
-            await sleep(backoff(attempt))
-            continue
-          }
-          return undefined
-        }
-        if (!response.ok) return undefined
-        const parsed = (await response.json()) as JevResponse
-        if (parsed === null || typeof parsed !== 'object' || parsed.answers === undefined) {
-          return undefined
-        }
-        return parsed
-      } catch {
-        // Caller cancellation is final; a timeout or a socket error retries.
-        if (caller?.aborted === true) return undefined
-        if (attempt < this.options.maxRetries) {
-          await sleep(backoff(attempt))
-          continue
-        }
-        return undefined
-      } finally {
-        clearTimeout(timer)
-        caller?.removeEventListener('abort', onAbort)
-      }
+      const result = await this.attempt(body, caller)
+      if (result.kind === 'answer') return result.response
+      if (result.kind === 'stop' || attempt === this.options.maxRetries) return undefined
+      await sleep(backoff(attempt))
     }
     return undefined
   }

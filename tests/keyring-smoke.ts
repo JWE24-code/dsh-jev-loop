@@ -15,17 +15,17 @@ function check(label: string, condition: boolean): void {
 /** A judger that answers every question `1`, or nothing when told to fail. */
 function judger(reachable = true): Judger {
   return {
-    async systemOne(_state, questions): Promise<JevResult | undefined> {
-      if (!reachable) return undefined
+    systemOne(_state, questions): Promise<JevResult | undefined> {
+      if (!reachable) return Promise.resolve(undefined)
       const answers: Record<string, Answer> = {}
       for (const id of Object.keys(questions)) answers[id] = { type: 'noul', noul: 1 }
-      return {
+      return Promise.resolve({
         model: 'test',
         answers,
         usage: { input_tokens: 1, output_tokens: 1 },
         cache: 'miss',
         latencyMs: 1,
-      }
+      })
     },
     stats: () => ({ calls: 0, cacheHits: 0, inputTokens: 0, outputTokens: 0 }),
   }
@@ -36,15 +36,17 @@ function store(initial: Record<string, string> = {}): CredentialStore & { data: 
   const data = { ...initial }
   return {
     data,
-    async resolve(ref) {
+    resolve(ref) {
       const value = data[ref]
-      return value === undefined ? undefined : { value, source: 'file' }
+      return Promise.resolve(value === undefined ? undefined : { value, source: 'file' })
     },
-    async set(ref, value) {
+    set(ref, value) {
       data[ref] = value
+      return Promise.resolve()
     },
-    async unset(ref) {
+    unset(ref) {
       delete data[ref]
+      return Promise.resolve()
     },
   }
 }

@@ -128,7 +128,7 @@ const BOOKKEEPING_LIMIT = 500
 function safeArguments(value: unknown): string {
   try {
     const text = JSON.stringify(value)
-    return text === undefined ? String(value) : text
+    return text ?? String(value)
   } catch {
     return '[unserializable]'
   }

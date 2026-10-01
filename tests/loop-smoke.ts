@@ -37,15 +37,15 @@ function makeLoop(options: {
   for (const [id, p] of Object.entries(options.answers ?? {})) answered[id] = noul(p)
   let calls = 0
   const judger: Judger = {
-    async systemOne(): Promise<JevResult | undefined> {
+    systemOne(): Promise<JevResult | undefined> {
       calls += 1
-      return {
+      return Promise.resolve({
         model: 'test',
         answers: answered,
         usage: { input_tokens: 1, output_tokens: 1 },
         cache: 'miss',
         latencyMs: 1,
-      }
+      })
     },
     stats: () => ({ calls, cacheHits: 0, inputTokens: 0, outputTokens: 0 }),
   }
@@ -71,14 +71,12 @@ function makeLoop(options: {
     keyring,
     settings,
     defaultEnabled: (gate) => options.defaults?.[gate] ?? true,
-    modeFor: (gate) =>
-      gate === 'preExecute'
-        ? settings.preExecuteMode
-        : gate === 'postExecute'
-          ? settings.postExecuteMode
-          : gate === 'turnStopping'
-            ? 'nudge'
-            : 'clarify',
+    modeFor: (gate) => {
+      if (gate === 'preExecute') return settings.preExecuteMode
+      if (gate === 'postExecute') return settings.postExecuteMode
+      if (gate === 'turnStopping') return 'nudge'
+      return 'clarify'
+    },
     persist: (gates) => persisted.push([...gates]),
     audit: (entry) => audits.push(entry),
   })

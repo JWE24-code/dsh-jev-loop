@@ -24,11 +24,11 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { Context } from '@deepseek-ai/cordis'
-import type {} from '@deepseek-ai/dsh-agent'
+import type {} from '@deepseek-ai/dsh-agent' // NOSONAR — deliberate empty type-only import: it pulls the Context augmentation in with no runtime import.
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { UserMessage } from '@deepseek-ai/dsh-llm'
-import type {} from '@deepseek-ai/dsh-tools'
+import type {} from '@deepseek-ai/dsh-tools' // NOSONAR — deliberate empty type-only import: it pulls the Context augmentation in with no runtime import.
 import z from '@deepseek-ai/schemastery'
 
 import { JevClient } from './jev.ts'
