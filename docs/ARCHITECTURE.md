@@ -22,7 +22,8 @@ below is the wiring; this table is the contract.
 | `keyring.ts` | `refresh` · `refreshStored` · `set` · `clear` · `status` · `live` | resolution order, lazy client creation, probing, the store |
 | `loop.ts` | `JevLoop` — one method per gate, plus the control surface | state assembly, once-per-turn, nudge budgets, audit |
 | `jev.ts` | `Judger.systemOne` | retry, backoff, cache, state cap |
-| `render.ts` | `renderMessages` · `renderContent` · `lastUserRequest` | derived messages to Jev text |
+| `render.ts` | `renderMessages` · `renderContent` · `lastUserRequest` | derived messages to Jev text, across the 0.1.x and 0.2.x message shapes |
+| `audit.ts` | `appendAudit` | JSONL encoding, size-capped rotation to `.1`, swallowing every I/O failure |
 | `index.ts` | the Cordis plugin (`apply`) | config, event wiring, effects |
 
 The domain modules import no Cordis: `gates.ts` is pure, and `keyring.ts` /

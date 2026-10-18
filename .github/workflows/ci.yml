@@ -23,20 +23,28 @@ jobs:
       - run: npm test
 
   # Compiling the Harness-typed files does need `@deepseek-ai/*`, which
-  # `link-harness` makes resolvable from the checkout.
+  # `link-harness` makes resolvable from the checkout. One job per supported
+  # Harness line: 0.1.x and 0.2.x differ in their message types (0.2 drops the
+  # shared `plugin` message source and the `tool-result` content block), and
+  # the plugin must compile against both. Keep this list in step with the
+  # `peerDependencies` ranges in package.json.
   typecheck:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dsh: ['0.1.5-rc.3', '0.2.0-rc.2', '0.2.1-rc.2']
+    name: typecheck (dsh ${{ matrix.dsh }})
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      # Pinned to the line this plugin targets (0.1.5-rc.3): against
-      # 0.2.0-rc.2 the message-segment types differ and the typecheck fails.
-      # Unpin only after updating the plugin for the 0.2.x API.
-      - run: npm install -g --ignore-scripts @deepseek-ai/dsh@0.1.5-rc.3
+      - run: npm install -g --ignore-scripts @deepseek-ai/dsh@${{ matrix.dsh }}
       - run: npm ci --ignore-scripts
       - run: npm run link-harness
-      - run: npm run build
       - run: npm run typecheck
+      # The committed lib/ is built against the 0.1.x line (see publish.yml);
+      # building here only proves it emits on every line.
+      - run: npm run build

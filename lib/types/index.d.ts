@@ -29,6 +29,13 @@ export declare const name = "dsh-jev-loop";
 export declare const inject: string[];
 /** The service key a host looks up to render the control panel. */
 export declare const JEV_LOOP_SERVICE = "jevLoop";
+declare module '@deepseek-ai/dsh-llm' {
+    interface MessageSourceMap {
+        'dsh-jev-loop': {
+            kind: 'dsh-jev-loop';
+        };
+    }
+}
 /** Plugin config, resolved from the bundle patch or a profile layer. */
 export interface Config {
     /** Literal key; prefer `apiKeyEnv` so no secret lives in a config file. */
@@ -49,6 +56,8 @@ export interface Config {
     cacheEntries?: number;
     /** JSONL audit trail of every judgment. Default `$DSH_HOME/jev-loop.jsonl`. */
     auditPath?: string;
+    /** Rotate the audit trail to `<auditPath>.1` past this size; `0` disables. Default 5 MiB. */
+    auditMaxBytes?: number;
     /** Where the runtime gate toggles persist. Default `$DSH_HOME/jev-loop.json`. */
     statePath?: string;
     /** Judge the request before the first step. Default false. */

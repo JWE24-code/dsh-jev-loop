@@ -19,7 +19,7 @@
  * @module
  */
 
-import { appendFileSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
@@ -31,6 +31,7 @@ import type { UserMessage } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-tools' // NOSONAR — deliberate empty type-only import: it pulls the Context augmentation in with no runtime import.
 import z from '@deepseek-ai/schemastery'
 
+import { appendAudit, DEFAULT_AUDIT_MAX_BYTES } from './audit.ts'
 import { JevClient } from './jev.ts'
 import { Keyring, type CredentialStore } from './keyring.ts'
 import { JevLoop, type JevLoopSettings } from './loop.ts'
@@ -52,8 +53,21 @@ export const JEV_LOOP_SERVICE = 'jevLoop'
 /** The credential-store reference a panel-set key is stored under. */
 const KEY_REF_NAME = 'TYPESAFE_API_KEY'
 
-/** The source stamped on every context this plugin injects or steers. */
-const PLUGIN_SOURCE = { kind: 'plugin', plugin: name } as const
+/**
+ * The source stamped on every context this plugin injects or steers.
+ *
+ * Harness 0.2 dropped the shared catch-all `{ kind: 'plugin', plugin }` source:
+ * each producer declares its own `kind` on `MessageSourceMap` (augmented
+ * below). 0.1.x accepts any declared kind too, and both lines' chat UIs label
+ * an unknown kind by the kind itself, so one source shape serves both.
+ */
+const PLUGIN_SOURCE = { kind: name } as const
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'dsh-jev-loop': { kind: 'dsh-jev-loop' }
+  }
+}
 
 /** Plugin config, resolved from the bundle patch or a profile layer. */
 export interface Config {
@@ -75,6 +89,8 @@ export interface Config {
   cacheEntries?: number
   /** JSONL audit trail of every judgment. Default `$DSH_HOME/jev-loop.jsonl`. */
   auditPath?: string
+  /** Rotate the audit trail to `<auditPath>.1` past this size; `0` disables. Default 5 MiB. */
+  auditMaxBytes?: number
   /** Where the runtime gate toggles persist. Default `$DSH_HOME/jev-loop.json`. */
   statePath?: string
   /** Judge the request before the first step. Default false. */
@@ -115,6 +131,7 @@ export const Config: z<Config> = z.object({
   maxStateChars: z.number(),
   cacheEntries: z.number(),
   auditPath: z.string(),
+  auditMaxBytes: z.number(),
   statePath: z.string(),
   preStepEnabled: z.boolean(),
   preStepThreshold: z.number(),
@@ -171,6 +188,7 @@ interface Settings {
   /** A key fixed in config, if any; the keyring prefers it. */
   configKey: string | undefined
   auditPath: string
+  auditMaxBytes: number
   statePath: string
   /** How a resolved key becomes a client. */
   client: {
@@ -195,6 +213,7 @@ function resolveSettings(config: Config): Settings {
   return {
     configKey: config.apiKey,
     auditPath: config.auditPath ?? join(dshHome, 'jev-loop.jsonl'),
+    auditMaxBytes: config.auditMaxBytes ?? DEFAULT_AUDIT_MAX_BYTES,
     statePath: config.statePath ?? join(dshHome, 'jev-loop.json'),
     client: {
       model: config.model ?? 'jev-latest',
@@ -245,15 +264,6 @@ function saveOverrides(path: string, gates: readonly { name: string; enabled: bo
   }
 }
 
-/** Append one audit line; a failed write must never break the loop. */
-function audit(path: string, entry: Record<string, unknown>): void {
-  try {
-    appendFileSync(path, `${JSON.stringify({ time: new Date().toISOString(), ...entry })}\n`)
-  } catch {
-    // Best effort only.
-  }
-}
-
 /** Adapt the Harness credential service onto the keyring's port, if mounted. */
 function credentialStore(ctx: Context): CredentialStore | undefined {
   const credentials = ctx.get('credentials') as
@@ -295,7 +305,7 @@ export function apply(ctx: Context, config: Config): void {
     modeFor: (gate) => modeFor(gate as keyof typeof GATE_DEFAULTS, settings.loop),
     overrides: loadOverrides(settings.statePath),
     persist: (gates) => saveOverrides(settings.statePath, gates),
-    audit: (entry) => audit(settings.auditPath, entry),
+    audit: (entry) => appendAudit(settings.auditPath, entry, settings.auditMaxBytes),
   })
 
   // The service is always provided, so the panel opens and the toggles persist
@@ -375,10 +385,7 @@ export function apply(ctx: Context, config: Config): void {
 
   // The credential store may be provided after this plugin mounts, so resolve
   // again once it exists — a stored key then outranks a bare env fallback.
-  const injectable = ctx as unknown as {
-    inject(deps: string[], callback: (ctx: Context) => void): unknown
-  }
-  injectable.inject(['credentials'], () => {
+  ctx.inject(['credentials'], () => {
     void keyring.refreshStored()
   })
 
