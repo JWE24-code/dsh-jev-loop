@@ -9,8 +9,31 @@
 
 import type { ContentBlock, Message } from '@deepseek-ai/dsh-llm'
 
+/**
+ * A Harness 0.1.x tool result: a `tool-result` content block nested in a
+ * user-role message. Harness 0.2 removed the block in favour of a first-class
+ * `role: 'tool'` message (see {@link renderMessage}), so the shape is matched
+ * structurally here rather than named from either line's types.
+ */
+interface LegacyToolResultBlock {
+  type: 'tool-result'
+  content: readonly ContentBlock[]
+  isError?: boolean
+}
+
+function isLegacyToolResult(block: unknown): block is LegacyToolResultBlock {
+  const candidate = block as Partial<LegacyToolResultBlock> | null
+  return candidate?.type === 'tool-result' && Array.isArray(candidate.content)
+}
+
 /** One content block as a line of prose. */
 function renderBlock(block: ContentBlock): string {
+  // Widened first: on 0.2 the guard would otherwise narrow `block` to never.
+  const legacy: unknown = block
+  if (isLegacyToolResult(legacy)) {
+    const inner = legacy.content.map(renderBlock).join(' ')
+    return `[tool result${legacy.isError === true ? ' error' : ''}] ${inner}`
+  }
   switch (block.type) {
     case 'text':
       return block.text
@@ -18,10 +41,6 @@ function renderBlock(block: ContentBlock): string {
       return `[reasoning] ${block.text}`
     case 'tool-call':
       return `[tool call ${block.name} ${block.arguments}]`
-    case 'tool-result': {
-      const inner = block.content.map(renderBlock).join(' ')
-      return `[tool result${block.isError === true ? ' error' : ''}] ${inner}`
-    }
     case 'image':
       return '[image]'
     case 'file':
@@ -36,9 +55,13 @@ export function renderContent(blocks: readonly ContentBlock[]): string {
   return blocks.map(renderBlock).join('\n')
 }
 
-/** One derived message as `role: body`. */
+/**
+ * One derived message as `role: body`. A Harness 0.2 tool-role message carries
+ * its error flag on the message, so it renders as `tool error: …`.
+ */
 export function renderMessage(message: Message): string {
-  return `${message.role}: ${renderContent(message.content)}`
+  const failed = (message as { isError?: boolean }).isError === true ? ' error' : ''
+  return `${message.role}${failed}: ${renderContent(message.content)}`
 }
 
 /**

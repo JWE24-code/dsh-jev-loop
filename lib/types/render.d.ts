@@ -9,7 +9,10 @@
 import type { ContentBlock, Message } from '@deepseek-ai/dsh-llm';
 /** One list of content blocks as plain lines. */
 export declare function renderContent(blocks: readonly ContentBlock[]): string;
-/** One derived message as `role: body`. */
+/**
+ * One derived message as `role: body`. A Harness 0.2 tool-role message carries
+ * its error flag on the message, so it renders as `tool error: …`.
+ */
 export declare function renderMessage(message: Message): string;
 /**
  * Render the last `maxMessages` messages, capped to `maxChars`.

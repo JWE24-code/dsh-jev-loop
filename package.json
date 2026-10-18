@@ -45,7 +45,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --experimental-strip-types tests/gates-smoke.ts && node --experimental-strip-types tests/keyring-smoke.ts && node --experimental-strip-types tests/loop-smoke.ts",
+    "test": "node --experimental-strip-types tests/gates-smoke.ts && node --experimental-strip-types tests/keyring-smoke.ts && node --experimental-strip-types tests/loop-smoke.ts && node --experimental-strip-types tests/audit-smoke.ts && node --experimental-strip-types tests/render-smoke.ts",
     "prepublishOnly": "npm run link-harness && npm run build && npm run typecheck && npm test",
     "link-harness": "node scripts/link-harness.mjs",
     "install-profile": "node scripts/install-profile.mjs"
@@ -54,13 +54,13 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "*",
-    "@deepseek-ai/dsh-agent": "*",
-    "@deepseek-ai/dsh-credentials": "*",
-    "@deepseek-ai/dsh-llm": "*",
-    "@deepseek-ai/dsh-session": "*",
-    "@deepseek-ai/dsh-tools": "*",
-    "@deepseek-ai/schemastery": "*"
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-agent": "^0.1.5-rc.3 || ^0.2.0-rc.0 || ^0.2.1-rc.0",
+    "@deepseek-ai/dsh-credentials": "^0.1.5-rc.3 || ^0.2.0-rc.0 || ^0.2.1-rc.0",
+    "@deepseek-ai/dsh-llm": "^0.1.5-rc.3 || ^0.2.0-rc.0 || ^0.2.1-rc.0",
+    "@deepseek-ai/dsh-session": "^0.1.5-rc.3 || ^0.2.0-rc.0 || ^0.2.1-rc.0",
+    "@deepseek-ai/dsh-tools": "^0.1.5-rc.3 || ^0.2.0-rc.0 || ^0.2.1-rc.0",
+    "@deepseek-ai/schemastery": "^3.18.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
