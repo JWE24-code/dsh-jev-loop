@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-10-20
+
+### Changed
+
+- Every `@deepseek-ai/*` peer dependency is now optional
+  (`peerDependenciesMeta`), the way `moqi-tui` declares them. The Harness
+  provides these packages in-box, and DeepSeek Harness 0.2.1 profiles set
+  `autoInstallPeers: false`, so `dsh plugin add` no longer prints
+  `Issues with peer dependencies found`. The version ranges are unchanged.
+
+### Added
+
+- CI guard that fails if any `@deepseek-ai/*` package appears under
+  `dependencies`, which would put a stale core copy into the profile and
+  shadow the in-box one.
+- CI `install-smoke` job: installs `@deepseek-ai/dsh` at `latest` and `next`,
+  runs `dsh plugin --profile t add` with the packed package in a fresh
+  `DSH_HOME`, and checks that `dsh --profile t --dump-config` succeeds and that
+  no `@deepseek-ai/*` copy lands in the profile.
+
 ## [0.1.3] - 2026-10-18
 
 ### Added
@@ -44,5 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleared the outstanding Sonar findings: the profile installer's path guard,
   absolute interpreter paths, the retry-loop split, and smoke-test cleanups.
 
+[0.1.4]: https://github.com/JWE24-code/dsh-jev-loop/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/JWE24-code/dsh-jev-loop/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/JWE24-code/dsh-jev-loop/releases/tag/v0.1.2
